@@ -12,9 +12,6 @@ const { body, validationResult } = require('express-validator');
 
 
 
-//requiring middleware for token checking
-const { tokenChecking } = require('../middlewares/checkingPermissions.js');
-router.use(tokenChecking);
 
 
 
@@ -61,6 +58,15 @@ router.get('/getmovieidbyname/:moviename', async (req, res) => {
     res.status(400);
   }
 });
+
+
+
+//requiring middleware for token checking
+const { tokenChecking } = require('../middlewares/checkingPermissions.js');
+router.use(tokenChecking);
+
+
+
 
 //adding a new movie
 router.post('/addmovie', body('releaseddate').isDate(), async (req, res) => {

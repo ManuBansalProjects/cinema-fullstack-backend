@@ -11,9 +11,6 @@ const knex = require('knex')(knexConfig);
 const { body, validationResult } = require('express-validator');
 
 
-//middleware-> for token checking
-const { tokenChecking } = require('../middlewares/checkingPermissions.js');
-router.use(tokenChecking);
 
 
 
@@ -76,6 +73,16 @@ router.get('/getcinemabyname/:cinemaname', async (req, res) => {
     res.status(400);
   }
 });
+
+
+
+//middleware-> for token checking
+const { tokenChecking } = require('../middlewares/checkingPermissions.js');
+router.use(tokenChecking);
+
+
+
+
 
 //adding a new cinema
 router.post('/addcinema', async (req, res) => {

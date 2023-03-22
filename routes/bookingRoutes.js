@@ -14,7 +14,7 @@ const knex = require('knex')(knexConfig);
 
 
 //requiring middleware
-const { tokenChecking, adminAndSelfUserAccess } = require('../middlewares/checkingPermissions.js');
+const { tokenChecking, adminChecking, adminAndSelfUserAccess } = require('../middlewares/checkingPermissions.js');
 router.use(tokenChecking);
 
 
@@ -23,14 +23,23 @@ router.use(tokenChecking);
 
 
 //a new booking
-router.post('/booktickets/:email', body('userid').isInt(), body('cinemaid').isInt(), body('movieid').isInt(), body('showid').isInt(), body('amount').isInt(), async (req, res) => {
+router.post('/booktickets/:email', body('cinemaid').isInt(), body('movieid').isInt(), body('showid').isInt(), body('amount').isInt(), async (req, res) => {
   try {
     console.log('booking tickets backend');
     const err = validationResult(req);
-    if (!err.isEmpty()) {
+    if (!err.isEmpty() || !req.body.tickets) {
       res.status(400).json('please enter proper details');
     }
-    await knex.withSchema('cinemabackend').table('bookings').insert(req.body);
+
+    req.body.tickets=req.body.tickets.toString();
+
+    let temp = req.headers.authorization.split(' ');
+    const token = temp[1];
+    req.body.userid=await knex.withSchema('cinemabackend').table('usersdetails').where('jwt',token); req.body.userid=req.body.userid[0].id;
+
+    console.log(req.body);
+
+    // await knex.withSchema('cinemabackend').table('bookings').insert(req.body);
     // res.json('successfully booked');
 
 
@@ -64,8 +73,8 @@ router.post('/booktickets/:email', body('userid').isInt(), body('cinemaid').isIn
         res.json(err);
       }
       else {
-        console.log('email has sent');
-        res.json({ message: 'success: email has sent' });
+        console.log('Ticket booked successfully, Please check your Email');
+        res.json({ message: 'success: Ticket booked successfully, Please check your Email' });
       }
     });
 
@@ -93,16 +102,16 @@ router.get('/getbookinghistory/:userid', adminAndSelfUserAccess, async (req, res
 
 
 
-// router.get('/',  async (req, res) => {
-//   try {
-//     const result = await knex.withSchema('cinemabackend').table('bookings').select('*');
-//     res.json(result);
-//   }
-//   catch (error) {
-//     console.log(error);
-//     res.status(400);
-//   }
-// });
+router.get('/allbookings',adminChecking,  async (req, res) => {
+  try {
+    const result = await knex.withSchema('cinemabackend').table('bookings').select('*');
+    res.json({result:result});
+  }
+  catch (error) {
+    console.log(error);
+    res.status(400);
+  }
+});
 
 
 module.exports = router;

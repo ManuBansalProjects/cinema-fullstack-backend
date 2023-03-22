@@ -14,10 +14,6 @@ const knex = require('knex')(knexConfig);
 
 
 
-//requiring middleware
-const { tokenChecking } = require('../middlewares/checkingPermissions.js');
-router.use(tokenChecking);
-
 
 
 
@@ -100,6 +96,10 @@ router.get('/getshowsbycinemaid/:cinemaid', async (req, res) => {
 })
 
 
+
+//requiring middleware
+const { tokenChecking } = require('../middlewares/checkingPermissions.js');
+router.use(tokenChecking);
 
 
 //adding a show
