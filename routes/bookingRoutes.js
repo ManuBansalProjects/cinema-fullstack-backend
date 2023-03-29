@@ -88,7 +88,7 @@ router.post('/booktickets/:email', body('cinemaid').isInt(), body('movieid').isI
 
 
 
-router.get('/getbookinghistory/:userid', adminAndSelfUserAccess, async (req, res) => {
+router.get('/getbookinghistory/:userid', async (req, res) => {
   try {
     const result = await knex.withSchema('cinemabackend').table('bookings').where('userid', req.params.userid);
     res.json({ result: result });

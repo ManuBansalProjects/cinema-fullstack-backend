@@ -108,7 +108,7 @@ const selfAccess = (async (req, res, next) => {
       next();
     }
     else {
-      res.json('No permissions to access others portals');
+      res.json({error:'error: No permissions to access others portals'});
     }
   }
   catch (error) {

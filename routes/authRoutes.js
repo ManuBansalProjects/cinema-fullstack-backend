@@ -205,7 +205,7 @@ router.get('/getuser/:id', adminAndSelfUserAccess, async (req, res) => {
   try {
     console.log('listing a particular user details');
     const result = await knex.withSchema('cinemabackend').table('usersdetails').where('id', req.params.id);
-    res.json({ result: result });
+    res.json({ result: result[0] });
   }
   catch (error) {
     console.log(error);
@@ -228,10 +228,25 @@ router.get('/getuserbytoken', async (req, res) => {
   }
 });
 
+//getting a particualr user by token
+router.get('/gettinguserbytoken', async (req, res) => {
+  try {
+    let temp = req.headers.authorization.split(' ');
+    const token = temp[1];
+    const result = await knex.withSchema('cinemabackend').table('usersdetails').where('jwt', token);
+    res.json({ result: result[0] });
+  }
+  catch (error) {
+    console.log(error);
+    res.status(400);
+  }
+});
+
+
 
 
 //updating  a particular user
-router.put('/update', selfAccess, body('name').isLength({ min: 3 }), body('email').isEmail(), body('password').isLength({ min: 8 }), async (req, res) => {
+router.put('/update', body('name').isLength({ min: 3 }), async (req, res) => {
   try {
     console.log('user is updating the details');
     const err = validationResult(req);
@@ -241,16 +256,12 @@ router.put('/update', selfAccess, body('name').isLength({ min: 3 }), body('email
     let temp = req.headers.authorization.split(' ');
     const token = temp[1];
 
-    bcrypt.hash(req.body.password, saltRounds, async (error, hash) => {
-      await knex.withSchema('cinemabackend').table('usersdetails').where('jwt', token).update(
-        {
-          name: req.body.name,
-          email: req.body.email,
-          password: hash
-        }
-      );
-      res.json('succesfully updated');
-    });
+    await knex.withSchema('cinemabackend').table('usersdetails').where('jwt', token).update(
+      {
+        name: req.body.name,
+      }
+    )  
+    res.json({message: 'succesfully updated'});
 
   }
   catch (error) {
@@ -262,7 +273,7 @@ router.put('/update', selfAccess, body('name').isLength({ min: 3 }), body('email
 
 
 //logout
-router.get('/logout', selfAccess, async (req, res) => {
+router.get('/logout', async (req, res) => {
   try {
     console.log('user is logging out');
 
