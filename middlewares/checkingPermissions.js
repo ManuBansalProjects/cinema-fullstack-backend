@@ -85,7 +85,7 @@ const adminChecking = (async (req, res, next) => {
 
 const adminAndSelfUserAccess = (async (req, res, next) => {
   try {
-    if (record.role == true || record.id == req.params.userid) {
+    if (record.role == true || record.id == req.params.id) {
       next();
     }
     else {

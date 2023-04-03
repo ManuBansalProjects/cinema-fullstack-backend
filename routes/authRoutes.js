@@ -14,6 +14,12 @@ const knex = require('knex')(knexConfig);
 const jwt = require('jsonwebtoken');
 
 
+//to send Email
+const {sendEmailNotification}=require('../utility/util.js');
+
+
+
+
 //to hash the password using crypto
 let Crypto = require('crypto');  //importing crypto module
 let secret_key = 'fd85b494-aaaa';  //defining secret key
@@ -111,42 +117,90 @@ router.post('/login', body('email').isEmail(), body('password').isLength({ min: 
 })
 
 
+router.get('/checkjwtforpasswordchange',async(req,res)=>{
+  try{
+    const token=req.headers.authorization.split(' ')[1];
+
+    jwt.verify(token,'secretkey',(err,decoded)=>{
+      if(decoded!=undefined){
+        console.log(decoded);
+        res.json({message: decoded});
+      }
+      else{
+        console.log(err);
+        res.json({error:err});
+      }
+    })
+  }
+  catch(error){
+    console.log(error);
+  }
+})
+
+
+
+router.put('/changepassword',async(req,res)=>{
+  try{
+
+    const token=req.headers.authorization.split(' ')[1];
+
+    jwt.verify(token, 'secretkey', async(err,decoded)=>{
+      if(decoded!=undefined){
+
+        //encrypting password
+        req.body.password = encryptString(req.body.password, encryptionMethod, key, iv);
+
+        await knex.withSchema('cinemabackend').table('usersdetails').where('email',decoded.email).update({
+          password: req.body.password
+        })
+
+        res.json({message: 'succesfully updated'});
+
+      }
+      else{
+        console.log(err);
+        res.json({error: err.message});
+      }
+    })
+
+  }
+  catch(error){
+    console.log(error);
+  }
+
+})
 
 
 //sending forgot password email to user
-router.post('/sendemail', body('email').isEmail(), async (req, res) => {
+router.post('/sendforgotpasswordemail', body('email').isEmail(), async (req, res) => {
   try {
     console.log('sending forgot-password to user"s email', req.body.email);
 
-    const record = await knex.withSchema('cinemabackend').table('usersdetails').where('email', req.body.email);
-    console.log(record);
+    let result = await knex.withSchema('cinemabackend').table('usersdetails').where('email', req.body.email); 
+    console.log(result);
 
-    if (!record.length) {
+    if (!result.length) {
       res.json({ error: 'no email is found' });
     }
     else {
       //sending mail notification
+      result=result[0];
 
-      let details = {
-        from: "manubansal.cse23@jecrc.ac.in",
-        to: req.body.email,
-        subject: "your forgotten password from BookMyShow",
-        text: `Your forgotten password is  :- ${decryptString(record[0].password, encryptionMethod, key, iv)} `
-      }
+      const newToken = jwt.sign({ email: result.email }, 'secretkey', { expiresIn: "300s" });
+      console.log('new token', newToken);
+      
+      sendEmailNotification(
+        {
+          email: result.email, 
+          subject: "BookMyShow: Here is the link to generate your new password", 
+          text:   `Please Click on the link given below \n http://localhost:4200/users/changepassword/${newToken}   \n \n Link is only valid for 5 minutes`
+        },
+  
+        'forgotPassword'
+      );   
+      
+      res.json({message: 'email has sent'});
 
-      //sending mail
-      const { configMailTransporter } = require('../config.js');
-
-      configMailTransporter.sendMail(details, (err) => {
-        if (err) {
-          console.log("it has an error", err);
-          res.json({ error: err });
-        }
-        else {
-          console.log('email has sent');
-          res.json({ message: 'email has sent: check your email' });
-        }
-      });
     }
   }
   catch (error) {
@@ -154,6 +208,8 @@ router.post('/sendemail', body('email').isEmail(), async (req, res) => {
     res.json({ error: `catch ${error}` });
   }
 })
+
+
 
 
 //middleware-> for token checking
@@ -303,6 +359,76 @@ router.delete('/delete/:id', adminAndSelfUserAccess, async (req, res) => {
     res.status(400);
   }
 })
+
+
+
+
+//sending reset password link to user
+//changing password 
+router.get('/sendupdatepasswordlink',async(req,res)=>{
+  try{
+    console.log('changing passsword',req.headers);
+
+    let temp = req.headers.authorization.split(' ');
+    const token = temp[1];
+    
+    let result=await knex.withSchema('cinemabackend').table('usersdetails').where('jwt',token); result=result[0];
+
+    const newToken = jwt.sign({ email: result.email }, 'secretkey', { expiresIn: "300s" });
+    console.log('new token', newToken);
+
+
+    sendEmailNotification(
+      {
+        email: result.email, 
+        subject: "BookMyShow: Here is the Link to change your password", 
+        text:   `Please Click on the link given below \n http://localhost:4200/users/changepassword/${newToken}   \n \n Link is only valid for 5 minutes`
+      },
+
+      'resetPassword'
+    );
+
+    // console.log(obj);
+    res.json({message: 'email has sent'});
+
+    
+
+
+  
+    // const newToken = jwt.sign({email:result.email}, 'secretkey',{expiresIn: "300s"});
+    // console.log('new token', newToken);
+    
+    // //sending mail notification
+
+    // let details = {
+    //   from: "manubansal.cse23@jecrc.ac.in",
+    //   to: result.email,
+    //   subject: "BookMyShow: Here is the Link to change your password",
+    //   text: `Please Click on the link given below \n http://localhost:4200/users/changepassword/${newToken}   \n \n Link is only valid for 5 minutes`
+      
+    // }
+
+    // //sending mail
+    // const { configMailTransporter } = require('../config.js');
+
+    // configMailTransporter.sendMail(details, (err) => {
+    //   if (err) {
+    //     console.log("it has an error", err);
+    //     res.json({ error: err });
+    //   }
+    //   else {
+    //     console.log('email has sent');
+    //     res.json({ message: 'email has sent: check your email' });
+    //   }
+    // });
+    
+  }
+  catch(error){
+    console.log('catch ', error);
+  }
+
+})
+
 
 
 

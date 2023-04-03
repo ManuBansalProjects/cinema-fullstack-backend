@@ -23,7 +23,7 @@ const { body, validationResult } = require('express-validator');
 router.get('/getcinemas', async (req, res) => {
   try {
     console.log('listing all the cinemas details');
-    const result = await knex.withSchema('cinemabackend').table('cinemasdetails').where('isactive', true);
+    const result = await knex.withSchema('cinemabackend').table('cinemasdetails');
     res.json({ result: result });
   }
   catch (error) {
@@ -157,6 +157,22 @@ router.delete('/delete/:id', async (req, res) => {
   }
 })
 
+
+//changing status of a cinema
+router.put('/changecinemastatus/:cinemaid', async(req,res)=>{
+  try{
+    console.log('changing status of a cinema');
+    const result=await knex.withSchema('cinemabackend').table('cinemasdetails').where('id',req.params.cinemaid).update({
+      isactive: req.body.status
+    })
+
+    console.log(result);
+    res.json({message: `status changed  ${req.body.status}`});
+  }
+  catch(error){
+    console.log(error);
+  }
+})
 
 
 // //listing all the cinemas details
