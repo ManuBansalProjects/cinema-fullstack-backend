@@ -19,7 +19,7 @@ const { body, validationResult } = require('express-validator');
 //displaying all the movies 
 router.get('/getmovies', async (req, res) => {
   try {
-    const result = await knex.withSchema('cinemabackend').table('moviesdetails').where('isactive', true);
+    const result = await knex.withSchema('bookmyshow').table('movies').where('isactive', 1);
     console.log(result);
     res.json({ moviesList: result });
   }
@@ -35,7 +35,7 @@ router.get('/getmovies', async (req, res) => {
 router.get('/getmovie/:id', async (req, res) => {
   try {
     console.log('listing a particular movie details');
-    const result = await knex.withSchema('cinemabackend').table('moviesdetails').where('id', req.params.id);
+    const result = await knex.withSchema('bookmyshow').table('movies').where('id', req.params.id);
     console.log(result[0]);
     res.json({ result: result[0] });
   }
@@ -49,7 +49,7 @@ router.get('/getmovie/:id', async (req, res) => {
 router.get('/getmovieidbyname/:moviename', async (req, res) => {
   try {
     console.log('getting a movieid by  movie name');
-    const result = await knex.withSchema('cinemabackend').table('moviesdetails').where('name', req.params.moviename);
+    const result = await knex.withSchema('bookmyshow').table('movies').where('name', req.params.moviename);
     console.log(result[0]);
     res.json({ result: result[0].id });
   }
@@ -72,11 +72,11 @@ router.use(tokenChecking);
 router.post('/addmovie', body('releaseddate').isDate(), async (req, res) => {
   try {
     const err = validationResult(req);
-    if (!err.isEmpty() || !req.body.name || !req.body.descrp) {
+    if (!err.isEmpty() || !req.body.name || !req.body.descrption || !req.body.movieposter) {
       res.status(400).json({ message: 'fields are not proper' });
     }
 
-    await knex.withSchema('cinemabackend').table('moviesdetails').insert(req.body);
+    await knex.withSchema('bookmyshow').table('movies').insert(req.body);
     res.json({ message: 'movie is inserted successfully' });
   }
   catch (error) {
@@ -96,7 +96,7 @@ router.put('/editmovie/:id', body('releaseddate').isDate(), async (req, res) => 
       res.status(400).json({ message: 'fields are not proper' });
     }
 
-    const result = await knex.withSchema('cinemabackend').table('moviesdetails').where('id', req.params.id).update(
+    const result = await knex.withSchema('bookmyshow').table('movies').where('id', req.params.id).update(
       {
         name: req.body.name,
         descrp: req.body.descrp,
@@ -125,7 +125,7 @@ router.put('/editmovie/:id', body('releaseddate').isDate(), async (req, res) => 
 router.delete('/deletemovie/:id', async (req, res) => {
   try {
     console.log('deleting a particular movie');
-    const result = await knex.withSchema('cinemabackend').table('moviesdetails').andWhere('id', req.params.id).andWhere('isactive', true).update({ isactive: false });
+    const result = await knex.withSchema('bookmyshow').table('movies').andWhere('id', req.params.id).update({ isactive: 0 });
     if (result) {
       res.json({ message: 'success: deleted successfully' });
     }

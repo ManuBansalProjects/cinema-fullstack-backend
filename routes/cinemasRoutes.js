@@ -23,7 +23,16 @@ const { body, validationResult } = require('express-validator');
 router.get('/getcinemas', async (req, res) => {
   try {
     console.log('listing all the cinemas details');
-    const result = await knex.withSchema('cinemabackend').table('cinemasdetails');
+    let result = await knex.withSchema('bookmyshow').table('cinemas');
+
+    for(let i=0;i<result.length;i++){
+      states=await knex.withSchema('bookmyshow').table('states').where('id',result[i].stateid)
+      result[i].state=states[0].name;
+
+      cities=await knex.withSchema('bookmyshow').table('cities').where('id',result[i].cityid);
+      result[i].city=cities[0].name;
+    }
+
     res.json({ result: result });
   }
   catch (error) {
@@ -37,8 +46,16 @@ router.get('/getcinemas', async (req, res) => {
 router.get('/getcinema/:id', async (req, res) => {
   try {
     console.log('listing a particular cinema details');
-    const result = await knex.withSchema('cinemabackend').table('cinemasdetails').where('id', req.params.id);
-    res.json({ result: result[0] });
+    let result = await knex.withSchema('bookmyshow').table('cinemas').where('id', req.params.id);
+    result=result[0];
+
+    states=await knex.withSchema('bookmyshow').table('states').where('id',result.stateid);
+    result.state=states[0].name;
+
+    cities=await knex.withSchema('bookmyshow').table('cities').where('id',result.cityid);
+    result.city=cities[0].name;
+    
+    res.json({ result: result });
   }
   catch (error) {
     console.log(error);
@@ -51,7 +68,7 @@ router.get('/getcinema/:id', async (req, res) => {
 router.get('/getcinemaidbyname/:cinemaname', async (req, res) => {
   try {
     console.log('sending cinema id by cinema name');
-    const result = await knex.withSchema('cinemabackend').table('cinemasdetails').where('name', req.params.cinemaname);
+    const result = await knex.withSchema('bookmyshow').table('cinemas').where('name', req.params.cinemaname);
     res.json({ result: result[0].id });
   }
   catch (error) {
@@ -65,7 +82,7 @@ router.get('/getcinemaidbyname/:cinemaname', async (req, res) => {
 router.get('/getcinemabyname/:cinemaname', async (req, res) => {
   try {
     console.log('sending cinema  by cinema name');
-    const result = await knex.withSchema('cinemabackend').table('cinemasdetails').where('name', req.params.cinemaname);
+    const result = await knex.withSchema('bookmyshow').table('cinemas').where('name', req.params.cinemaname);
     res.json({ result: result[0] });
   }
   catch (error) {
@@ -82,6 +99,35 @@ router.use(tokenChecking);
 
 
 
+router.get('/get-states-and-cities', async(req,res)=>{
+  try{
+    console.log('getting states and cities');
+    let states=await knex.withSchema('bookmyshow').table('states');
+    console.log(states);
+    
+    for(let i=0; i<states.length; i++){
+      let cities=await knex.withSchema('bookmyshow').table('cities').where('stateid', states[i].id);
+
+      let citiesWithoutStateId=[];
+      for(let i=0; i<cities.length; i++){
+        citiesWithoutStateId.push({name: cities[i].name, id: cities[i].id});
+      }
+      console.log(citiesWithoutStateId);
+
+      states[i].cities=citiesWithoutStateId;
+    }
+
+    for(let i=0;i<states.length;i++){
+      console.log(states[i]);
+    }
+
+    res.json({result: states});
+
+  }
+  catch(error){
+    console.log(error);
+  }
+})
 
 
 //adding a new cinema
@@ -89,11 +135,11 @@ router.post('/addcinema', async (req, res) => {
   try {
     console.log('adding a new cinema');
     const err = validationResult(req);
-    if (!err.isEmpty() || !req.body.name || !req.body.address || !req.body.contactnumber || !req.body.screens || !req.body.showsavailabilitytime) {
+    if (!err.isEmpty() || !req.body.name || !req.body.address || !req.body.contactnumber || !req.body.stateid || !req.body.cityid) {
       res.status(400).json({ error: 'please enter correct and proper details' });
     }
 
-    await knex.withSchema('cinemabackend').table('cinemasdetails').insert(req.body);
+    await knex.withSchema('bookmyshow').table('cinemas').insert(req.body);
     res.json({ message: 'cinema added succesfully' });
   }
   catch (error) {
@@ -110,20 +156,21 @@ router.put('/editcinema/:id', async (req, res) => {
   try {
     console.log('updating a cinema details');
     const err = validationResult(req);
-    if (!err.isEmpty() || !req.body.name || !req.body.address || !req.body.contactnumber || !req.body.screens || !req.body.showsavailabilitytime) {
+    if (!err.isEmpty() || !req.body.name || !req.body.address || !req.body.contactnumber || !req.body.stateid || !req.body.cityid ) {
       res.status(400).json({ error: 'please enter correct and proper details' });
     }
 
-    const result = await knex.withSchema('cinemabackend').table('cinemasdetails').where('id', req.params.id).update(
+    const result = await knex.withSchema('bookmyshow').table('cinemas').where('id', req.params.id).update(
       {
         name: req.body.name,
         address: req.body.address,
         contactnumber: req.body.contactnumber,
         website: req.body.website,
-        screens: req.body.screens,
-        showsavailabilitytime: req.body.showsavailabilitytime
+        stateid: req.body.stateid,
+        cityid: req.params.cityid
       }
     )
+
     if (result) {
       res.json({ message: 'success: cinema details updated succesfully' });
     }
@@ -144,7 +191,7 @@ router.put('/editcinema/:id', async (req, res) => {
 router.delete('/delete/:id', async (req, res) => {
   try {
     console.log('deleting a particular cinema');
-    const result = await knex.withSchema('cinemabackend').table('cinemasdetails').where('id', req.params.id).update({ isactive: false });
+    const result = await knex.withSchema('bookmyshow').table('cinemas').where('id', req.params.id).update({ isactive: 0 });
     if (result) {
       res.json({ message: 'deleted successfully' });
     }
@@ -162,8 +209,8 @@ router.delete('/delete/:id', async (req, res) => {
 router.put('/changecinemastatus/:cinemaid', async(req,res)=>{
   try{
     console.log('changing status of a cinema');
-    const result=await knex.withSchema('cinemabackend').table('cinemasdetails').where('id',req.params.cinemaid).update({
-      isactive: req.body.status
+    const result=await knex.withSchema('bookmyshow').table('cinemas').where('id',req.params.cinemaid).update({
+      isactive: req.body.status?1:0
     })
 
     console.log(result);

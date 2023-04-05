@@ -58,7 +58,7 @@ router.post('/registration', body('name').isLength({ min: 3 }), body('email').is
       res.status(400).json({ error: 'error accured: credentials are not valid' });
     }
 
-    const alreadyExists = await knex.withSchema('cinemabackend').table('usersdetails').where('email', req.body.email);
+    const alreadyExists = await knex.withSchema('bookmyshow').table('users').where('email', req.body.email);
 
     if (alreadyExists.length) {
       res.json({ error: 'error: Email is already exists' });
@@ -68,7 +68,7 @@ router.post('/registration', body('name').isLength({ min: 3 }), body('email').is
       req.body.password = encryptString(req.body.password, encryptionMethod, key, iv);
       console.log('registering password is ', req.body.password);
 
-      await knex.withSchema('cinemabackend').table('usersdetails').insert(req.body);
+      await knex.withSchema('bookmyshow').table('users').insert(req.body);
       res.json({ message: 'success: registration successfull' });
     }
   }
@@ -89,7 +89,7 @@ router.post('/login', body('email').isEmail(), body('password').isLength({ min: 
       res.status(400).json({ error: 'error accured' });
     }
 
-    const record = await knex.withSchema('cinemabackend').table('usersdetails').andWhere('email', req.body.email);
+    const record = await knex.withSchema('bookmyshow').table('users').andWhere('email', req.body.email);
     console.log(record);
     if (!record.length) {
       res.json({ error: ' no record found' });
@@ -106,7 +106,7 @@ router.post('/login', body('email').isEmail(), body('password').isLength({ min: 
     else {
       console.log('password matches');
       const token = jwt.sign(record[0], 'secretkey');
-      await knex.withSchema('cinemabackend').table('usersdetails').andWhere('email', req.body.email).update({ jwt: token });
+      await knex.withSchema('bookmyshow').table('users').andWhere('email', req.body.email).update({ jwt: token });
       res.json({ login: 'success', token: token, role: record[0].role });
     }
   }
@@ -139,8 +139,13 @@ router.get('/checkjwtforpasswordchange',async(req,res)=>{
 
 
 
-router.put('/changepassword',async(req,res)=>{
+router.put('/changepassword', body('password').isLength({min:8}), async(req,res)=>{
   try{
+    const err = validationResult(req);
+    if (!err.isEmpty()) {
+      res.status(400).json({ error: 'error accured' });
+    }
+
 
     const token=req.headers.authorization.split(' ')[1];
 
@@ -150,7 +155,7 @@ router.put('/changepassword',async(req,res)=>{
         //encrypting password
         req.body.password = encryptString(req.body.password, encryptionMethod, key, iv);
 
-        await knex.withSchema('cinemabackend').table('usersdetails').where('email',decoded.email).update({
+        await knex.withSchema('bookmyshow').table('users').where('email',decoded.email).update({
           password: req.body.password
         })
 
@@ -171,12 +176,19 @@ router.put('/changepassword',async(req,res)=>{
 })
 
 
+
 //sending forgot password email to user
 router.post('/sendforgotpasswordemail', body('email').isEmail(), async (req, res) => {
   try {
+    const err = validationResult(req);
+    if (!err.isEmpty()) {
+      res.status(400).json({ error: 'error accured' });
+    }
+
+
     console.log('sending forgot-password to user"s email', req.body.email);
 
-    let result = await knex.withSchema('cinemabackend').table('usersdetails').where('email', req.body.email); 
+    let result = await knex.withSchema('bookmyshow').table('users').where('email', req.body.email); 
     console.log(result);
 
     if (!result.length) {
@@ -223,14 +235,12 @@ router.get('/getrole', async (req, res) => {
   try {
     let temp = req.headers.authorization.split(' ');
     const token = temp[1];
-    record = await knex.withSchema('cinemabackend').table('usersdetails').where('jwt', token);
+    record = await knex.withSchema('bookmyshow').table('users').where('jwt', token);
 
     console.log('record is', record[0]);
     console.log(record[0].role);
 
-    if (record[0].role == true) Role = 1; else Role = 0;
-    console.log('backend role', Role);
-    res.json({ role: Role });
+    res.json({ role: record[0].role });
   }
   catch (error) {
     console.log('catch', error);
@@ -244,7 +254,7 @@ router.get('/getrole', async (req, res) => {
 router.get('/getusers', adminChecking, async (req, res) => {
   try {
     console.log('listing all the users details');
-    const result = await knex.withSchema('cinemabackend').table('usersdetails').where('isactive', true);
+    const result = await knex.withSchema('bookmyshow').table('users').where('isactive', 1);
     console.log(result);
     res.json({ result: result });
   }
@@ -260,7 +270,7 @@ router.get('/getusers', adminChecking, async (req, res) => {
 router.get('/getuser/:id', adminAndSelfUserAccess, async (req, res) => {
   try {
     console.log('listing a particular user details');
-    const result = await knex.withSchema('cinemabackend').table('usersdetails').where('id', req.params.id);
+    const result = await knex.withSchema('bookmyshow').table('users').where('id', req.params.id);
     res.json({ result: result[0] });
   }
   catch (error) {
@@ -275,7 +285,7 @@ router.get('/getuserbytoken', async (req, res) => {
   try {
     let temp = req.headers.authorization.split(' ');
     const token = temp[1];
-    const result = await knex.withSchema('cinemabackend').table('usersdetails').where('jwt', token);
+    const result = await knex.withSchema('bookmyshow').table('users').where('jwt', token);
     res.json({ result: result });
   }
   catch (error) {
@@ -289,7 +299,7 @@ router.get('/gettinguserbytoken', async (req, res) => {
   try {
     let temp = req.headers.authorization.split(' ');
     const token = temp[1];
-    const result = await knex.withSchema('cinemabackend').table('usersdetails').where('jwt', token);
+    const result = await knex.withSchema('bookmyshow').table('users').where('jwt', token);
     res.json({ result: result[0] });
   }
   catch (error) {
@@ -312,7 +322,7 @@ router.put('/update', body('name').isLength({ min: 3 }), async (req, res) => {
     let temp = req.headers.authorization.split(' ');
     const token = temp[1];
 
-    await knex.withSchema('cinemabackend').table('usersdetails').where('jwt', token).update(
+    await knex.withSchema('bookmyshow').table('users').where('jwt', token).update(
       {
         name: req.body.name,
       }
@@ -336,7 +346,7 @@ router.get('/logout', async (req, res) => {
     let temp = req.headers.authorization.split(' ');
     const token = temp[1];
 
-    const result = await knex.withSchema('cinemabackend').table('usersdetails').where('jwt', token).update({ jwt: null });
+    const result = await knex.withSchema('bookmyshow').table('users').where('jwt', token).update({ jwt: null });
     res.json({ message: 'you are successfully logged out' });
   }
   catch (error) {
@@ -351,7 +361,7 @@ router.get('/logout', async (req, res) => {
 router.delete('/delete/:id', adminAndSelfUserAccess, async (req, res) => {
   try {
     console.log('deleting a particular user id:', req.params.id);
-    const result = await knex.withSchema('cinemabackend').table('usersdetails').andWhere('id', req.params.id).update({ isactive: false });
+    const result = await knex.withSchema('bookmyshow').table('users').andWhere('id', req.params.id).update({ isactive: 0 });
     res.json({ message: 'deleted successfully' });
   }
   catch (error) {
@@ -372,7 +382,7 @@ router.get('/sendupdatepasswordlink',async(req,res)=>{
     let temp = req.headers.authorization.split(' ');
     const token = temp[1];
     
-    let result=await knex.withSchema('cinemabackend').table('usersdetails').where('jwt',token); result=result[0];
+    let result=await knex.withSchema('bookmyshow').table('users').where('jwt',token); result=result[0];
 
     const newToken = jwt.sign({ email: result.email }, 'secretkey', { expiresIn: "300s" });
     console.log('new token', newToken);
@@ -390,37 +400,6 @@ router.get('/sendupdatepasswordlink',async(req,res)=>{
 
     // console.log(obj);
     res.json({message: 'email has sent'});
-
-    
-
-
-  
-    // const newToken = jwt.sign({email:result.email}, 'secretkey',{expiresIn: "300s"});
-    // console.log('new token', newToken);
-    
-    // //sending mail notification
-
-    // let details = {
-    //   from: "manubansal.cse23@jecrc.ac.in",
-    //   to: result.email,
-    //   subject: "BookMyShow: Here is the Link to change your password",
-    //   text: `Please Click on the link given below \n http://localhost:4200/users/changepassword/${newToken}   \n \n Link is only valid for 5 minutes`
-      
-    // }
-
-    // //sending mail
-    // const { configMailTransporter } = require('../config.js');
-
-    // configMailTransporter.sendMail(details, (err) => {
-    //   if (err) {
-    //     console.log("it has an error", err);
-    //     res.json({ error: err });
-    //   }
-    //   else {
-    //     console.log('email has sent');
-    //     res.json({ message: 'email has sent: check your email' });
-    //   }
-    // });
     
   }
   catch(error){

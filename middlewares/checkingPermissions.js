@@ -21,7 +21,7 @@ const tokenChecking = (async (req, res, next) => {
     let temp = req.headers.authorization.split(' ');
     const token = temp[1];
 
-    record = await knex.withSchema('cinemabackend').table('usersdetails').where('jwt', token);
+    record = await knex.withSchema('bookmyshow').table('users').where('jwt', token);
     // console.log('current user is: ',record);
 
     if (!record.length) {
