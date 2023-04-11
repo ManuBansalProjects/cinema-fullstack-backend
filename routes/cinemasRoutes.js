@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 
 
+
 //database pg connection
 const { configDb } = require('../config.js');
 const knexConfig = configDb.knexPGConfig;
@@ -13,27 +14,38 @@ const { body, validationResult } = require('express-validator');
 
 
 
-
-
-
-
-
-
 //getting all cinemas
 router.get('/getcinemas', async (req, res) => {
   try {
     console.log('listing all the cinemas details');
-    let result = await knex.withSchema('bookmyshow').table('cinemas');
-
-    for(let i=0;i<result.length;i++){
-      states=await knex.withSchema('bookmyshow').table('states').where('id',result[i].stateid)
-      result[i].state=states[0].name;
-
-      cities=await knex.withSchema('bookmyshow').table('cities').where('id',result[i].cityid);
-      result[i].city=cities[0].name;
-    }
-
-    res.json({ result: result });
+    await knex
+      .select('cinemas.id', 'cinemas.name', 'cinemas.address', 'cinemas.contactnumber', 'cinemas.website',
+        'cinemas.isactive', 'states.name as state', 'cities.name as city', 'states.id as stateid', 'cities.id as cityid')
+      .withSchema('bookmyshow').table('states')
+      .join('cinemas', 'states.id', '=', 'cinemas.stateid')
+      .join('cities', 'cinemas.cityid', '=', 'cities.id')
+      .then(rows => {
+        const result = rows.map(row => {
+          return {
+            id: row.id,
+            name: row.name,
+            address: row.address,
+            contactnumber: row.contactnumber,
+            website: row.website,
+            isactive: row.isactive,
+            state: {
+              id: row.stateid,
+              name: row.state
+            },
+            city: {
+              id: row.cityid,
+              name: row.city
+            }
+          }
+        })
+        console.log(result);
+        res.json({ result: result });
+      })
   }
   catch (error) {
     console.log(error);
@@ -46,16 +58,35 @@ router.get('/getcinemas', async (req, res) => {
 router.get('/getcinema/:id', async (req, res) => {
   try {
     console.log('listing a particular cinema details');
-    let result = await knex.withSchema('bookmyshow').table('cinemas').where('id', req.params.id);
-    result=result[0];
-
-    states=await knex.withSchema('bookmyshow').table('states').where('id',result.stateid);
-    result.state=states[0].name;
-
-    cities=await knex.withSchema('bookmyshow').table('cities').where('id',result.cityid);
-    result.city=cities[0].name;
-    
-    res.json({ result: result });
+    await knex
+      .select('cinemas.id', 'cinemas.name', 'cinemas.contactnumber', 'cinemas.website', 'cinemas.isactive', 'cinemas.address', 'cinemas.stateid',
+        'cinemas.cityid', 'states.name as state', 'cities.name as city')
+      .withSchema('bookmyshow').table('cinemas').join('states', 'cinemas.stateid', '=', 'states.id')
+      .join('cities', 'cinemas.cityid', '=', 'cities.id')
+      .where('cinemas.id', req.params.id)
+      .then(rows => {
+        let cinema = rows.map(row => {
+          return {
+            id: row.id,
+            name: row.name,
+            address: row.address,
+            contactnumber: row.contactnumber,
+            website: row.website,
+            isactive: row.isactive,
+            state: {
+              id: row.stateid,
+              name: row.state
+            },
+            city: {
+              id: row.cityid,
+              name: row.city
+            }
+          }
+        })
+        cinema = cinema[0];
+        console.log(cinema);
+        res.json({ result: cinema });
+      })
   }
   catch (error) {
     console.log(error);
@@ -92,42 +123,36 @@ router.get('/getcinemabyname/:cinemaname', async (req, res) => {
 });
 
 
-
-//middleware-> for token checking
-const { tokenChecking } = require('../middlewares/checkingPermissions.js');
-router.use(tokenChecking);
-
-
-
-router.get('/get-states-and-cities', async(req,res)=>{
-  try{
+router.get('/get-states-and-cities', async (req, res) => {
+  try {
     console.log('getting states and cities');
-    let states=await knex.withSchema('bookmyshow').table('states');
-    console.log(states);
-    
-    for(let i=0; i<states.length; i++){
-      let cities=await knex.withSchema('bookmyshow').table('cities').where('stateid', states[i].id);
-
-      let citiesWithoutStateId=[];
-      for(let i=0; i<cities.length; i++){
-        citiesWithoutStateId.push({name: cities[i].name, id: cities[i].id});
-      }
-      console.log(citiesWithoutStateId);
-
-      states[i].cities=citiesWithoutStateId;
-    }
-
-    for(let i=0;i<states.length;i++){
-      console.log(states[i]);
-    }
-
-    res.json({result: states});
-
+    // knex.raw('json_agg(cities.*) as cities')   -> if we want the full data of 2nd table 
+    // knex.raw('json_agg(json_build_object(\'id\', cities.id, \'name\', cities.name))  ->if we want some fields of 2nd table data
+    await knex.select('states.*', knex.raw('json_agg(json_build_object(\'id\', cities.id, \'name\', cities.name)) as cities'))
+      .withSchema('bookmyshow')
+      .table('states')
+      .leftJoin('cities', 'states.id', 'cities.stateid')
+      .groupBy('states.id')
+      .then(function (states) {
+        // The states array will contain objects with the states data and an array of their cities
+        for (let i = 0; i < states.length; i++) {
+          console.log(states[i]);
+        }
+        res.json({ result: states });
+      });
   }
-  catch(error){
+  catch (error) {
     console.log(error);
   }
 })
+
+
+
+//middleware-> for token checking
+const { tokenChecking } = require('../middlewares/checkingPermissions.js');
+const knexnest = require('knexnest');
+router.use(tokenChecking);
+
 
 
 //adding a new cinema
@@ -155,8 +180,9 @@ router.post('/addcinema', async (req, res) => {
 router.put('/editcinema/:id', async (req, res) => {
   try {
     console.log('updating a cinema details');
+    console.log(req.body, req.params);
     const err = validationResult(req);
-    if (!err.isEmpty() || !req.body.name || !req.body.address || !req.body.contactnumber || !req.body.stateid || !req.body.cityid ) {
+    if (!err.isEmpty() || !req.body.name || !req.body.address || !req.body.contactnumber || !req.body.stateid || !req.body.cityid) {
       res.status(400).json({ error: 'please enter correct and proper details' });
     }
 
@@ -167,7 +193,7 @@ router.put('/editcinema/:id', async (req, res) => {
         contactnumber: req.body.contactnumber,
         website: req.body.website,
         stateid: req.body.stateid,
-        cityid: req.params.cityid
+        cityid: req.body.cityid
       }
     )
 
@@ -206,17 +232,17 @@ router.delete('/delete/:id', async (req, res) => {
 
 
 //changing status of a cinema
-router.put('/changecinemastatus/:cinemaid', async(req,res)=>{
-  try{
+router.put('/changecinemastatus/:cinemaid', async (req, res) => {
+  try {
     console.log('changing status of a cinema');
-    const result=await knex.withSchema('bookmyshow').table('cinemas').where('id',req.params.cinemaid).update({
-      isactive: req.body.status?1:0
+    const result = await knex.withSchema('bookmyshow').table('cinemas').where('id', req.params.cinemaid).update({
+      isactive: req.body.status ? 1 : 0
     })
 
     console.log(result);
-    res.json({message: `status changed  ${req.body.status}`});
+    res.json({ message: `status changed  ${req.body.status}` });
   }
-  catch(error){
+  catch (error) {
     console.log(error);
   }
 })

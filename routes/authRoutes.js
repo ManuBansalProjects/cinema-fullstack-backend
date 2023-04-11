@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 
+
+
 //to validate the incoming data like: email,password,etc.
 const { body, validationResult } = require('express-validator');
 
@@ -10,12 +12,13 @@ const { configDb } = require('../config.js');
 const knexConfig = configDb.knexPGConfig;
 const knex = require('knex')(knexConfig);
 
+
 //to generate the token for security purposes
 const jwt = require('jsonwebtoken');
 
 
 //to send Email
-const {sendEmailNotification}=require('../utility/util.js');
+const { sendEmailNotification } = require('../utility/util.js');
 
 
 
@@ -117,59 +120,59 @@ router.post('/login', body('email').isEmail(), body('password').isLength({ min: 
 })
 
 
-router.get('/checkjwtforpasswordchange',async(req,res)=>{
-  try{
-    const token=req.headers.authorization.split(' ')[1];
+router.get('/checkjwtforpasswordchange', async (req, res) => {
+  try {
+    const token = req.headers.authorization.split(' ')[1];
 
-    jwt.verify(token,'secretkey',(err,decoded)=>{
-      if(decoded!=undefined){
+    jwt.verify(token, 'secretkey', (err, decoded) => {
+      if (decoded != undefined) {
         console.log(decoded);
-        res.json({message: decoded});
+        res.json({ message: decoded });
       }
-      else{
+      else {
         console.log(err);
-        res.json({error:err});
+        res.json({ error: err });
       }
     })
   }
-  catch(error){
+  catch (error) {
     console.log(error);
   }
 })
 
 
 
-router.put('/changepassword', body('password').isLength({min:8}), async(req,res)=>{
-  try{
+router.put('/changepassword', body('password').isLength({ min: 8 }), async (req, res) => {
+  try {
     const err = validationResult(req);
     if (!err.isEmpty()) {
       res.status(400).json({ error: 'error accured' });
     }
 
 
-    const token=req.headers.authorization.split(' ')[1];
+    const token = req.headers.authorization.split(' ')[1];
 
-    jwt.verify(token, 'secretkey', async(err,decoded)=>{
-      if(decoded!=undefined){
+    jwt.verify(token, 'secretkey', async (err, decoded) => {
+      if (decoded != undefined) {
 
         //encrypting password
         req.body.password = encryptString(req.body.password, encryptionMethod, key, iv);
 
-        await knex.withSchema('bookmyshow').table('users').where('email',decoded.email).update({
+        await knex.withSchema('bookmyshow').table('users').where('email', decoded.email).update({
           password: req.body.password
         })
 
-        res.json({message: 'succesfully updated'});
+        res.json({ message: 'succesfully updated' });
 
       }
-      else{
+      else {
         console.log(err);
-        res.json({error: err.message});
+        res.json({ error: err.message });
       }
     })
 
   }
-  catch(error){
+  catch (error) {
     console.log(error);
   }
 
@@ -188,7 +191,7 @@ router.post('/sendforgotpasswordemail', body('email').isEmail(), async (req, res
 
     console.log('sending forgot-password to user"s email', req.body.email);
 
-    let result = await knex.withSchema('bookmyshow').table('users').where('email', req.body.email); 
+    let result = await knex.withSchema('bookmyshow').table('users').where('email', req.body.email);
     console.log(result);
 
     if (!result.length) {
@@ -196,22 +199,22 @@ router.post('/sendforgotpasswordemail', body('email').isEmail(), async (req, res
     }
     else {
       //sending mail notification
-      result=result[0];
+      result = result[0];
 
       const newToken = jwt.sign({ email: result.email }, 'secretkey', { expiresIn: "300s" });
       console.log('new token', newToken);
-      
+
       sendEmailNotification(
         {
-          email: result.email, 
-          subject: "BookMyShow: Here is the link to generate your new password", 
-          text:   `Please Click on the link given below \n http://localhost:4200/users/changepassword/${newToken}   \n \n Link is only valid for 5 minutes`
+          email: result.email,
+          subject: "BookMyShow: Here is the link to generate your new password",
+          text: `Please Click on the link given below \n http://localhost:4200/users/changepassword/${newToken}   \n \n Link is only valid for 5 minutes`
         },
-  
+
         'forgotPassword'
-      );   
-      
-      res.json({message: 'email has sent'});
+      );
+
+      res.json({ message: 'email has sent' });
 
     }
   }
@@ -326,8 +329,8 @@ router.put('/update', body('name').isLength({ min: 3 }), async (req, res) => {
       {
         name: req.body.name,
       }
-    )  
-    res.json({message: 'succesfully updated'});
+    )
+    res.json({ message: 'succesfully updated' });
 
   }
   catch (error) {
@@ -375,14 +378,14 @@ router.delete('/delete/:id', adminAndSelfUserAccess, async (req, res) => {
 
 //sending reset password link to user
 //changing password 
-router.get('/sendupdatepasswordlink',async(req,res)=>{
-  try{
-    console.log('changing passsword',req.headers);
+router.get('/sendupdatepasswordlink', async (req, res) => {
+  try {
+    console.log('changing passsword', req.headers);
 
     let temp = req.headers.authorization.split(' ');
     const token = temp[1];
-    
-    let result=await knex.withSchema('bookmyshow').table('users').where('jwt',token); result=result[0];
+
+    let result = await knex.withSchema('bookmyshow').table('users').where('jwt', token); result = result[0];
 
     const newToken = jwt.sign({ email: result.email }, 'secretkey', { expiresIn: "300s" });
     console.log('new token', newToken);
@@ -390,19 +393,19 @@ router.get('/sendupdatepasswordlink',async(req,res)=>{
 
     sendEmailNotification(
       {
-        email: result.email, 
-        subject: "BookMyShow: Here is the Link to change your password", 
-        text:   `Please Click on the link given below \n http://localhost:4200/users/changepassword/${newToken}   \n \n Link is only valid for 5 minutes`
+        email: result.email,
+        subject: "BookMyShow: Here is the Link to change your password",
+        text: `Please Click on the link given below \n http://localhost:4200/users/changepassword/${newToken}   \n \n Link is only valid for 5 minutes`
       },
 
       'resetPassword'
     );
 
     // console.log(obj);
-    res.json({message: 'email has sent'});
-    
+    res.json({ message: 'email has sent' });
+
   }
-  catch(error){
+  catch (error) {
     console.log('catch ', error);
   }
 

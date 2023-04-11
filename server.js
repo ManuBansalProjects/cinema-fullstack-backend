@@ -2,16 +2,8 @@ const express = require('express');
 const app = express();
 app.use(express.json());
 
-
-
-
-app.get('/getData', (req, res) => {
-  res.json('nodejs message recieved');
-})
-
-
-
-
+const cors = require('cors');
+app.use(cors({ origin: 'http://localhost:4200' }));
 
 //requiring routes from seperate files
 const authRoutes = require('./routes/authRoutes');
@@ -19,6 +11,16 @@ const cinemasRoutes = require('./routes/cinemasRoutes');
 const moviesRoutes = require('./routes/moviesRoutes');
 const showsRoutes = require('./routes/showsRoutes');
 const bookingRoutes = require('./routes/bookingRoutes');
+
+
+
+
+
+//for testing purpose
+app.get('/getData', (req, res) => {
+  console.log('nodejs testing API is working');
+  res.json({ message: 'nodejs testing API is working' });
+})
 
 // //responding to requests
 app.use('/auth', authRoutes);

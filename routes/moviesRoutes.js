@@ -71,6 +71,7 @@ router.use(tokenChecking);
 //adding a new movie
 router.post('/addmovie', body('releaseddate').isDate(), async (req, res) => {
   try {
+    console.log('adding a movie');
     const err = validationResult(req);
     if (!err.isEmpty() || !req.body.name || !req.body.descrption || !req.body.movieposter) {
       res.status(400).json({ message: 'fields are not proper' });
@@ -91,15 +92,16 @@ router.post('/addmovie', body('releaseddate').isDate(), async (req, res) => {
 //updating a existing movie
 router.put('/editmovie/:id', body('releaseddate').isDate(), async (req, res) => {
   try {
+    console.log('editing a movie' , req.params);
     const err = validationResult(req);
-    if (!err.isEmpty() || !req.body.name || !req.body.descrp) {
+    if (!err.isEmpty() || !req.body.name || !req.body.descrption || !req.body.movieposter) {
       res.status(400).json({ message: 'fields are not proper' });
     }
 
     const result = await knex.withSchema('bookmyshow').table('movies').where('id', req.params.id).update(
       {
         name: req.body.name,
-        descrp: req.body.descrp,
+        descrption: req.body.descrption,
         releaseddate: req.body.releaseddate,
         movieposter: req.body.movieposter
       }
