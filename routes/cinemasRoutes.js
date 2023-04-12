@@ -25,6 +25,7 @@ router.get('/getcinemas', async (req, res) => {
       .join('cinemas', 'states.id', '=', 'cinemas.stateid')
       .join('cities', 'cinemas.cityid', '=', 'cities.id')
       .then(rows => {
+        console.log(' rows is',rows);
         const result = rows.map(row => {
           return {
             id: row.id,
@@ -43,7 +44,7 @@ router.get('/getcinemas', async (req, res) => {
             }
           }
         })
-        console.log(result);
+        // console.log(result);
         res.json({ result: result });
       })
   }
@@ -131,7 +132,7 @@ router.get('/get-states-and-cities', async (req, res) => {
     await knex.select('states.*', knex.raw('json_agg(json_build_object(\'id\', cities.id, \'name\', cities.name)) as cities'))
       .withSchema('bookmyshow')
       .table('states')
-      .leftJoin('cities', 'states.id', 'cities.stateid')
+      .join('cities', 'states.id', 'cities.stateid')
       .groupBy('states.id')
       .then(function (states) {
         // The states array will contain objects with the states data and an array of their cities
