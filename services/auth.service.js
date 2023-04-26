@@ -10,33 +10,37 @@ exports.emailAlreadyExists=async (email)=>{
     }
     catch(error){
         console.log(error);
+        throw error;
     }
 }
 
 exports.registration=async (user)=>{
     try{
-        return await knex.withSchema('bookmyshow').table('users').insert(user);
+        await knex.withSchema('bookmyshow').table('users').insert(user);
     }
     catch(error){
         console.log(error);
+        throw error;
     }
 }
 
 exports.login=async (email, token)=>{
     try{
-        return await knex.withSchema('bookmyshow').table('users').andWhere('email', email).update({ jwt: token });
+        await knex.withSchema('bookmyshow').table('users').andWhere('email', email).update({ jwt: token });
     }
     catch(error){
         console.log(error);
+        throw error;
     }
 }
 
 exports.updatePassword=async (email,password)=>{
     try{
-        return await knex.withSchema('bookmyshow').table('users').where('email', email).update({password: password});
+        await knex.withSchema('bookmyshow').table('users').where('email', email).update({password: password});
     }
     catch(error){
         console.log(error);
+        throw error;
     }
 }
 
@@ -47,6 +51,7 @@ exports.getRole=async (token)=>{
     }
     catch(error){
         console.log(error);
+        throw error;
     }
 }
 
@@ -56,6 +61,7 @@ exports.getUsers=async()=>{
     }
     catch(error){
         console.log(error);
+        throw error;
     }
 }
 
@@ -66,6 +72,7 @@ exports.getUser=async(userid)=>{
     }
     catch(error){
         console.log(error);
+        throw error;
     }
 }
 
@@ -75,7 +82,7 @@ exports.getUserByToken=async (token) => {
     }
     catch (error) {
       console.log(error);
-      res.status(400);
+      throw error;
     }
 }
 
@@ -86,13 +93,13 @@ exports.gettingUserByToken=async (token) => {
     }
     catch (error) {
       console.log(error);
-      res.status(400);
+      throw error;
     }
 }
 
 exports.updateUser=async (token,userDetails)=>{
     try{
-        return await knex.withSchema('bookmyshow').table('users').where('jwt', token).update(
+        await knex.withSchema('bookmyshow').table('users').where('jwt', token).update(
             {
               name: userDetails.name,
             }
@@ -100,25 +107,27 @@ exports.updateUser=async (token,userDetails)=>{
     }
     catch(error){
         console.log(error);
+        throw error;
     }
 }
 
 exports.logOut=async(token)=>{
     try{
-        return await knex.withSchema('bookmyshow').table('users').where('jwt', token).update({ jwt: null });
+        await knex.withSchema('bookmyshow').table('users').where('jwt', token).update({ jwt: null });
     }
     catch(error){
         console.log(error);
+        throw error;
     }
 }
 
 
 exports.delete=async (userid) => {
     try {
-      return await knex.withSchema('bookmyshow').table('users').andWhere('id', userid).update({ isactive: 0 });
+      await knex.withSchema('bookmyshow').table('users').andWhere('id', userid).update({ isactive: 0 });
     }
     catch (error) {
-      console.log('catch', error);
-      res.status(400);
+      console.log(error);
+      throw error;
     }
 }

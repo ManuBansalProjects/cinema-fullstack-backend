@@ -1,5 +1,3 @@
-//to validate the incoming data like: email,password,etc.
-const { body, validationResult } = require('express-validator');
 //to generate the token for security purposes
 const jwt = require('jsonwebtoken');
 //to send Email
@@ -30,138 +28,110 @@ function decryptString(encryptedString, encryptionMethod, secret, iv) {
 const authService=require('../services/auth.service.js');
 
 
-exports.registration=(body('name').isLength({ min: 3 }), body('email').isEmail(), body('password').isLength({ min: 8 }), async (req, res) => {
+exports.registration=async (user) => {
     try {
       console.log('user is registering');
-      const err = validationResult(req);
-      if (!err.isEmpty()) {
-        res.status(400).json({ error: 'error accured: credentials are not valid' });
-      }
-  
-      const record = await authService.emailAlreadyExists(req.body.email);
+      const record = await authService.emailAlreadyExists(user.email);
       if (record) {
-        res.json({ error: 'error: Email is already exists' });
+        throw 'error: Email is already exists';
       }
       else {
+        userNew=user;
         //encrypting password
-        req.body.password = encryptString(req.body.password, encryptionMethod, key, iv);
-        console.log('registering password is ', req.body.password);
-  
-        await authService.registration(req.body);
-        res.json({ message: 'success: registration successfull' });
+        userNew.password = encryptString(userNew.password, encryptionMethod, key, iv);
+        console.log('registering password is ', userNew.password);
+        await authService.registration(userNew);
+        return { message : 'success: registration successfull'} ;
       }
     }
     catch (error) {
-      console.log('catch', error);
-      res.status(400);
+      console.log(error);
+      throw error;
     }
-})
+}
 
-exports.login=(body('email').isEmail(), body('password').isLength({ min: 8 }), async (req, res) => {
+exports.login=async (user) => {
     try {
-      console.log('user is logging in');
-      const err = validationResult(req);
-      if (!err.isEmpty()) {
-        res.status(400).json({ error: 'error accured' });
-      }
-  
-      const record = await authService.emailAlreadyExists(req.body.email);
+      console.log('user is logging in');  
+      const record = await authService.emailAlreadyExists(user.email);
       if (!record) {
-        res.json({ error: 'no record found' });
+        throw 'no record found';
       }
-  
       //decrypting stored(hashed) password
       let password = decryptString(record.password, encryptionMethod, key, iv);
       console.log(password);
-  
       //matching incoming and decrypt password
-      if (req.body.password != password) {
-        res.json({ error: 'password not matched' });
+      if (user.password != password) {
+        throw 'password not matched';
       }
       else {
         console.log('password matches');
         const token = jwt.sign(record, 'secretkey');
-        await authService.login(req.body.email, token);
-        res.json({ login: 'success', token: token});
+        await authService.login(record.email, token);
+        return { login: 'success', token: token};
       }
     }
     catch (error) {
-      console.log('catch', error);
-      res.status(400);
-    }
-})
-
-exports.checkJwtForPasswordChange= async (req, res) => {
-    try {
-      const token = req.headers.authorization.split(' ')[1];
-  
-      jwt.verify(token, 'secretkey', (err, decoded) => {
-        if (decoded) {
-          console.log(decoded);
-          res.json({ message: decoded });
-        }
-        else {
-          console.log(err);
-          res.json({ error: err });
-        }
-      })
-    }
-    catch (error) {
       console.log(error);
+      throw error;
     }
 }
 
-exports.changePassword= (body('password').isLength({ min: 8 }), async (req, res) => {
+exports.checkJwtForPasswordChange= async () => {
     try {
-      const err = validationResult(req);
-      if (!err.isEmpty()) {
-        res.status(400).json({ error: 'error accured' });
-      }
-  
       const token = req.headers.authorization.split(' ')[1];
-  
-      jwt.verify(token, 'secretkey', async (err, decoded) => {
-        if (decoded != undefined) {
-          //encrypting password
-          req.body.password = encryptString(req.body.password, encryptionMethod, key, iv);
 
-          await authService.updatePassword(decoded.email, req.body.password);
-          res.json({ message: 'succesfully updated' });
+      jwt.verify(token, 'secretkey', (err, decoded) => {
+        if (decoded) {
+          console.log(decoded);
+          return { message: decoded };
         }
         else {
-          console.log(err);
-          res.json({ error: err.message });
+          throw err.message;
         }
       })
-  
     }
     catch (error) {
       console.log(error);
+      throw error;
     }
-  
-})
+}
 
-exports.sendForgotPassordEmail= (body('email').isEmail(), async (req, res) => {
+exports.changePassword= async (payload, headers) => {
+    try {  
+      const token = headers.authorization.split(' ')[1];
+      jwt.verify(token, 'secretkey', async (err, decoded) => {
+        if (decoded) {
+          //encrypting password
+          encryptedPassword = encryptString(payload.password, encryptionMethod, key, iv);
+          await authService.updatePassword(decoded.email, encryptedPassword);
+          return { message: 'succesfully updated' };
+        }
+        else {
+          throw err.message;
+        }
+      })
+    }
+    catch (error) {
+      console.log(error);
+      throw error;
+    }
+}
+
+exports.sendForgotPassordEmail= async (payload) => {
     try {
-      const err = validationResult(req);
-      if (!err.isEmpty()) {
-        res.status(400).json({ error: 'error accured' });
-      }
-
-      console.log('sending forgot-password to user"s email', req.body.email);
-  
-      let record = await authService.emailAlreadyExists(req.body.email);  
+      console.log('sending forgot-password to user"s email');
+      let record = await authService.emailAlreadyExists(payload.email);  
       if (!record) {
-        res.json({ error: 'no email is found' });
+        throw 'no email is found';
       }
       else {
         //sending mail notification  
-        const newToken = jwt.sign({ email: req.body.email }, 'secretkey', { expiresIn: "300s" });
+        const newToken = jwt.sign({ email: record.email }, 'secretkey', { expiresIn: "300s" });
         console.log('new token', newToken);
-  
         sendEmailNotification(
           {
-            email: req.body.email,
+            email: record.email,
             subject: "BookMyShow: Here is the link to generate your new password",
             text: `Please Click on the link given below \n http://localhost:4200/users/changepassword/${newToken}   \n \n Link is only valid for 5 minutes`
           },
@@ -169,138 +139,132 @@ exports.sendForgotPassordEmail= (body('email').isEmail(), async (req, res) => {
           'forgotPassword'
         );
   
-        res.json({ message: 'email has sent' });
-  
+        return {message : 'email has sent'};
       }
     }
     catch (error) {
       console.log(error);
-      res.json({ error: `catch ${error}` });
+      throw error;
     }
-})
+}
 
-exports.getRole= async (req, res) => {
+exports.getRole= async (headers) => {
     try {
-      let temp = req.headers.authorization.split(' ');
+      let temp = headers.authorization.split(' ');
       const token = temp[1];
       record = await authService.getRole(token);
   
       console.log('record is', record);
       console.log(record.role);
-  
-      res.json({ role: record.role });
+      return record.role;
     }
     catch (error) {
-      console.log('catch', error);
-      res.status(400);
+      console.log(error);
+      throw error;
     }
 }
 
-exports.getUsers=async (req, res) => {
+exports.getUsers=async () => {
     try {
       console.log('listing all the users details');
       const result = await authService.getUsers();
       console.log(result);
-      res.json({ result: result });
+      return result;
     }
     catch (error) {
       console.log(error);
-      res.status(400);
+      throw error;
     }
 }
 
-exports.getUser=async (req, res) => {
+exports.getUser=async (userId) => {
     try {
       console.log('listing a particular user details');
-      const result = await authService.getUser(req.params.id);
-      res.json({ result: result });
+      const result = await authService.getUser(userId);
+      return result;
     }
     catch (error) {
       console.log(error);
-      res.status(400);
+      throw error;
     }
 }
 
-exports.getUserByToken=async (req, res) => {
+exports.getUserByToken=async (headers) => {
     try {
-      let temp = req.headers.authorization.split(' ');
+      let temp = headers.authorization.split(' ');
       const token = temp[1];
       const result = await authService.getUserByToken(token);
-      res.json({ result: result });
+      return result;
     }
     catch (error) {
       console.log(error);
-      res.status(400);
+      throw error;
     }
 }
 
-exports.gettingUserByToken=async (req, res) => {
+exports.gettingUserByToken=async (headers) => {
     try {
-      let temp = req.headers.authorization.split(' ');
+      let temp = headers.authorization.split(' ');
       const token = temp[1];
       const result = await authService.gettingUserByToken(token);
-      res.json({ result: result });
+      return result;
     }
     catch (error) {
       console.log(error);
-      res.status(400);
+      throw error;
     }
 }
 
-exports.update=(body('name').isLength({ min: 3 }), async (req, res) => {
+exports.update=async (user, headers) => {
     try {
       console.log('user is updating the details');
       const err = validationResult(req);
       if (!err.isEmpty()) {
-        res.status(404).json('please enter correct details');
+        throw 'please enter correct details';
       }
-      let temp = req.headers.authorization.split(' ');
+      let temp = headers.authorization.split(' ');
       const token = temp[1];
       
-      await authService.updateUser(token, req.body);
-      res.json({ message: 'succesfully updated' });
+      await authService.updateUser(token, user);
+      return { message: 'succesfully updated' };
     }
     catch (error) {
-      console.log("catch", error);
-      res.status(400);
+      console.log(error);
+      throw error;
     }
-})
+}
 
-exports.logOut= async (req, res) => {
+exports.logOut= async (headers) => {
     try {
       console.log('user is logging out');
-      let temp = req.headers.authorization.split(' ');
+      let temp = headers.authorization.split(' ');
       const token = temp[1];
       await authService.logOut(token);
-      res.json({ message: 'you are successfully logged out' });
+      return { message: 'you are successfully logged out' };
     }
     catch (error) {
-      console.log('catch', error);
-      res.status(400);
+      console.log(error);
+      throw error;
     }
 }
 
-exports.delete=async (req, res) => {
+exports.delete=async (userId) => {
     try {
-      console.log('deleting a particular user id:', req.params.id);
-      const result = await authService.delete(req.params.id);
-      res.json({ message: 'deleted successfully' });
+      console.log('deleting a particular');
+      await authService.delete(userId);
+      return { message: 'deleted successfully' };
     }
     catch (error) {
-      console.log('catch', error);
-      res.status(400);
+      console.log(error);
+      throw error;
     }
 }
 
-exports.sendUpdatePasswordLink=async (req, res) => {
+exports.sendUpdatePasswordLink=async (headers) => {
     try {
-      console.log('changing passsword', req.headers);
-  
-      let temp = req.headers.authorization.split(' ');
+      let temp = headers.authorization.split(' ');
       const token = temp[1];
-  
       let result = await authService.gettingUserByToken(token);
-  
       const newToken = jwt.sign({ email: result.email }, 'secretkey', { expiresIn: "300s" });
       console.log('new token', newToken);
     
@@ -313,12 +277,12 @@ exports.sendUpdatePasswordLink=async (req, res) => {
         'resetPassword'
       );
   
-      res.json({ message: 'email has sent' });
+      return { message: 'email has sent' };
     }
     catch (error) {
-      console.log('catch ', error);
-    }
-  
+      console.log(error);
+      throw error;
+    }  
 }
 
 

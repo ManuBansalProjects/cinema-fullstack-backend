@@ -1,97 +1,88 @@
-//validating data
-const { body, validationResult } = require('express-validator');
 const moviesService=require('../services/movies.service');
 
-exports.getMovies=async (req, res) => {
+exports.getMovies=async() => {
     try {
       const result = await moviesService.getMovies();
       console.log(result);
-      res.json({ moviesList: result });
+      if(!result.length){
+        throw 'No Movies Found';
+      }
+      return result;
     }
     catch (error) {
-      console.log('catch' + error);
-      res.status(400);
+      console.log(error);
+      throw error;
     }
 }
 
-exports.getMovie= async (req, res) => {
+exports.getMovie= async (movieId) => {
     try {
       console.log('listing a particular movie details');
-      const result = await moviesService.getMovie(req.params.id);
+      const result = await moviesService.getMovie(movieId);
       console.log(result);
-      res.json({ result: result });
+      return result;
     }
     catch (error) {
-      console.log('catch' + error);
-      res.status(400);
+      console.log(error);
+      throw error;
     }
 }
 
-exports.getMovieIdByName=async (req, res) => {
+exports.getMovieIdByName=async (movieName) => {
     try {
       console.log('getting a movieid by  movie name');
-      const result = await moviesService.getMovieIdByName(req.params.moviename);
+      const result = await moviesService.getMovieIdByName(movieName);
       console.log(result);
-      res.json({ result: result });
+      return result;
     }
     catch (error) {
-      console.log('catch' + error);
-      res.status(400);
+      console.log(error);
+      throw error;
     }
 }
 
-exports.addMovie=(body('releaseddate').isDate(), async (req, res) => {
+exports.addMovie=async (movie) => {
     try {
       console.log('adding a movie');
-      const err = validationResult(req);
-      if (!err.isEmpty() || !req.body.name || !req.body.descrption || !req.body.movieposter) {
-        res.status(400).json({ message: 'fields are not proper' });
-      }
-  
-      const result=await moviesService.addMovie(req.body);
-      res.json({ message: 'movie is inserted successfully' });
+      await moviesService.addMovie(movie);
+      return { message: 'movie is inserted successfully' };
     }
     catch (error) {
-      console.log('catch' + error);
-      res.status(400);
+      console.log(error);
+      throw error;
     }
-})
+}
 
-exports.editMovie=(body('releaseddate').isDate(), async (req, res) => {
+exports.editMovie=async (movieId, movie) => {
     try {
-      console.log('editing a movie' , req.params);
-      const err = validationResult(req);
-      if (!err.isEmpty() || !req.body.name || !req.body.descrption || !req.body.movieposter) {
-        res.status(400).json({ message: 'fields are not proper' });
-      }
-  
-      const result = await moviesService.editMovie(req.params.id, req.body);
+      console.log('editing a movie' , movieId);  
+      const result = await moviesService.editMovie(movieId, movie);
       if (result) {
-        res.json({ message: 'success: updated successfully' });
+        return { message: 'success: updated successfully' };
       }
       else {
-        res.json({ message: 'error: movie not found' });
+        return { error: 'error: movie not found' };
       }
     }
     catch (error) {
-      console.log('catch' + error);
-      res.status(400);
+      console.log(error);
+      throw error;
     }
-})
+}
 
-exports.deleteMovie= async (req, res) => {
+exports.deleteMovie= async (movieId) => {
     try {
       console.log('deleting a particular movie');
-      const result = await moviesService.deleteMovie(req.params.id);
+      const result = await moviesService.deleteMovie(movieId);
       if (result) {
-        res.json({ message: 'success: deleted successfully' });
+        return { message: 'success: movie deleted successfully' };
       }
       else {
-        res.json({ message: 'error: movie not found' });
+        return { error: 'error: movie not found' };
       }
     }
     catch (error) {
-      console.log('catch' + error);
-      res.status(400);
+      console.log(error);
+      throw error;
     }
 }

@@ -9,46 +9,47 @@ exports.getMovies=async () => {
       return result;
     }
     catch (error) {
-      console.log('catch' + error);
-      res.status(400);
+      console.log(error);
+      throw error;
     }
 }
 
-exports.getMovie= async (movieid) => {
+exports.getMovie= async (movieId) => {
     try {
-      const result = await knex.withSchema('bookmyshow').table('movies').where('id', movieid);
+      const result = await knex.withSchema('bookmyshow').table('movies').where('id', movieId);
       return result[0];
     }
     catch (error) {
-      console.log('catch' + error);
-      res.status(400);
+      console.log(error);
+      throw error;
     }
 }
 
-exports.getMovieIdByName=async (moviename) => {
+exports.getMovieIdByName=async (movieName) => {
     try {
-      const result = await knex.withSchema('bookmyshow').table('movies').where('name', moviename);
+      const result = await knex.withSchema('bookmyshow').table('movies').where('name', movieName);
       return result[0].id;
     }
     catch (error) {
-      console.log('catch' + error);
-      res.status(400);
+      console.log(error);
+      throw error;
     }
 }
 
 exports.addMovie= async (movie) => {
     try {
-      return await knex.withSchema('bookmyshow').table('movies').insert(movie);  
+      const result= await knex.withSchema('bookmyshow').table('movies').insert(movie);  
+      return result;
     }
     catch (error) {
-      console.log('catch' + error);
-      res.status(400);
+      console.log(error);
+      throw error;
     }
 }
 
-exports.editMovie= async (movieid, movie) => {
+exports.editMovie= async (movieId, movie) => {
     try {
-      return result = await knex.withSchema('bookmyshow').table('movies').where('id', movieid).update(
+      const result = await knex.withSchema('bookmyshow').table('movies').where('id', movieId).update(
         {
           name: movie.name,
           descrption: movie.descrption,
@@ -56,20 +57,21 @@ exports.editMovie= async (movieid, movie) => {
           movieposter: movie.movieposter
         }
       )
-  
+      return result;
     }
     catch (error) {
-      console.log('catch' + error);
-      res.status(400);
+      console.log(error);
+      throw error;
     }
 }
 
-exports.deleteMovie= async (movieid) => {
+exports.deleteMovie= async (movieId) => {
     try {
-      return result = await knex.withSchema('bookmyshow').table('movies').andWhere('id', movieid).update({ isactive: 0 });
+      const result = await knex.withSchema('bookmyshow').table('movies').andWhere('id', movieId).update({ isactive: 0 });
+      return result;
     }
     catch (error) {
-      console.log('catch' + error);
-      res.status(400);
+      console.log(error);
+      throw error;
     }
 }

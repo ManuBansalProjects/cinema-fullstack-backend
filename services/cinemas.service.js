@@ -20,6 +20,7 @@ exports.getCinemas=async()=>{
     }
     catch(error){
         console.log(error);
+        throw error;
     }
 }
 
@@ -40,6 +41,7 @@ exports.getCinema= async(cinemaid)=>{
     }
     catch(error){
         console.log(error);
+        throw error;
     }
 }
 
@@ -51,7 +53,7 @@ exports.getCinemaIdByName= async (cinemaname) => {
     }
     catch (error) {
       console.log(error);
-      res.status(400);
+      throw error;
     }
 }
 
@@ -63,6 +65,7 @@ exports.getCinemaByName=async(cinemaname)=>{
     }
     catch(error){
         console.log(error);
+        throw error;
     }
 }
 
@@ -81,6 +84,7 @@ exports.getStatesAndCities=async () => {
     }
     catch (error) {
       console.log(error);
+      throw error;
     }
 }
 
@@ -91,7 +95,7 @@ exports.addCinema=async (cinema) => {
     }
     catch (error) {
         console.log(error);
-        res.status(400);
+        throw error;
     }
 }
 
@@ -102,6 +106,7 @@ exports.getLastCinemaRecordId=async()=>{
     }
     catch(error){
         console.log(error);
+        throw error;
     }
 }
 
@@ -112,6 +117,7 @@ exports.addScreens=async(screens)=>{
     }
     catch(error){
         console.log(error);
+        throw error;
     }
 }
 
@@ -133,7 +139,7 @@ exports.editCinema=async (cinemaid, cinema) => {
     }
     catch (error) {
       console.log(error);
-      res.status(400);
+      throw error;
     }
 }
 
@@ -145,6 +151,7 @@ exports.editScreens=async (screens)=>{
     }
     catch(error){
         console.log(error);
+        throw error;
     }
 }
 
@@ -156,27 +163,32 @@ exports.deleteCinema= async(cinemaid) => {
     }
     catch (error) {
       console.log(error);
+      throw error;
     }
 }
 
 exports.changeCinemaStatus=async (cinemaid,status) => {
     try {
         console.log('changing status of a cinema');
-        await knex.withSchema('bookmyshow').table('cinemas').where('id', cinemaid).update({
+        const result=await knex.withSchema('bookmyshow').table('cinemas').where('id', cinemaid).update({
             isactive: status ? 1 : 0
         })
+        return result;
     }
     catch (error) {
       console.log(error);
+      throw error;
     }
 }
 
 exports.deleteScreen=async(screenid)=>{
     try{
       console.log('deleting screen');
-      await knex.withSchema('bookmyshow').table('screens').where('id',screenid).delete();
+      const result=await knex.withSchema('bookmyshow').table('screens').where('id',screenid).delete();
+      return result;
     }
     catch(error){
       console.log(error);
+      throw error;
     }
-  }
+}

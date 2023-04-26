@@ -1,10 +1,11 @@
 const cinemasService=require('../services/cinemas.service');
-//to validate the recieved data
-const { body, validationResult } = require('express-validator');
 
-exports.getCinemas=async (req, res) => {
+exports.getCinemas=async () => {
     try {
       result=await cinemasService.getCinemas();
+      if(!result.length){
+        throw 'No Cinemas Found';
+      }
       result=result.map(row =>{
         return {
           id: row.id,
@@ -27,17 +28,17 @@ exports.getCinemas=async (req, res) => {
         }
       }) 
       
-      res.json({ result: result });  
+      return result;
     }
     catch (error) {
       console.log(error);
-      res.status(400);
+      throw error;
     }
   }
 
-  exports.getCinema=async (req, res) => {
+  exports.getCinema=async (cinemaId) => {
     try {
-      result=await cinemasService.getCinema(req.params.id);
+      result=await cinemasService.getCinema(cinemaId);
       result={
         id: result.id,
         name: result.name,
@@ -58,89 +59,79 @@ exports.getCinemas=async (req, res) => {
         screens: result.screens
       }
       
-      res.json({ result: result });  
+      return result;
     }
     catch (error) {
       console.log(error);
-      res.status(400);
+      throw error;
     }
   }
 
-  exports.getCinemaIdByName= async (req, res) => {
+  exports.getCinemaIdByName= async (cinemaName) => {
     try {
-      id = await cinemasService.getCinemaIdByName(req.params.cinemaname);
-      res.json({ result: id });
+      id = await cinemasService.getCinemaIdByName(cinemaName);
+      return id;
     }
     catch (error) {
       console.log(error);
-      res.status(400);
+      throw error;
     }
   }
 
-  exports.getCinemaByName= async (req, res) => {
+  exports.getCinemaByName= async (cinemaName) => {
     try {
-      result = await cinemasService.getCinemaByName(req.params.cinemaname);
-      res.json({ result: result });
+      result = await cinemasService.getCinemaByName(cinemaName);
+      return result;
     }
     catch (error) {
       console.log(error);
-      res.status(400);
+      throw error;
     }
   }
 
   exports.getStatesAndCities=async (req, res) => {
     try {
       result=await cinemasService.getStatesAndCities();
-      console.log('controllers', result);
-      res.json({ result: result });
+      return result;
     }
     catch (error) {
       console.log(error);
+      throw error;
     }
   }
 
-  exports.addCinema=async (req, res) => {
+  exports.addCinema=async (cinema) => {
     try {
-      const err = validationResult(req);
-      if (!err.isEmpty() || !req.body.name || !req.body.address || !req.body.contactnumber || !req.body.stateid || !req.body.cityid) {
-        res.status(400).json({ error: 'please enter correct and proper details' });
-      }
-  
-      screens=req.body.screens;
-      delete req.body.screens;
-      await cinemasService.addCinema(req.body);
+      newCinema=cinema;
+      screens=newCinema.screens;
+      delete newCinema.screens;
+      await cinemasService.addCinema(newCinema);
   
       if(screens.length){
-        lastCinemaId=await cinemasService.getLastCinemaRecordId();
-  
+        lastCinemaId=await cinemasService.getLastCinemaRecordId();  
         screens=screens.map(screen =>{
           return{
             ...screen,
             cinemaid: lastCinemaId
           }
         })
-        
         await cinemasService.addScreens(screens);      
       }
 
-      res.json({ message: 'cinema added succesfully' });
+      return {message: 'cinema added succesfully'};
     }
     catch (error) {
       console.log(error);
-      res.status(400);
+      throw error;
     }
   }
 
-  exports.editCinema=async (req, res) => {
+  exports.editCinema=async (cinemaId, cinema) => {
     try {  
-      const err = validationResult(req);
-      if (!err.isEmpty() || !req.body.name || !req.body.address || !req.body.contactnumber || !req.body.stateid || !req.body.cityid) {
-        res.status(400).json({ error: 'please enter correct and proper details' });
-      }
-  
-      screens=req.body.screens;
-      delete req.body.screens;
-      result1=await cinemasService.editCinema(req.params.id,req.body);
+      newCinema=cinema;
+      screens=newCinema.screens;
+      delete newCinema.screens;
+      result1=await cinemasService.editCinema(cinemaId, newCinema);
   
       screens=screens.map(screen =>{
         if(screen.id==0){
@@ -165,50 +156,63 @@ exports.getCinemas=async (req, res) => {
       result2=await cinemasService.editScreens(screens);
   
       if (result1 && result2) {
-        res.json({ message: 'success: cinema details updated succesfully' });
+        return { message: 'success: cinema details updated successfully' };
       }
       else {
-        res.json({ message: 'error: record not found' });
+        return { message: 'error: record not found' };
       }
     }
     catch (error) {
       console.log(error);
-      res.status(400);
+      throw error;
     }
   }
 
-  exports.deleteCinema=async (req, res) => {
+  exports.deleteCinema=async (cinemaId) => {
     try {
-      result = await cinemasService.deleteCinema(req.params.id);
-
+      result = await cinemasService.deleteCinema(cinemaId);
       if (result) {
-        res.json({ message: 'deleted successfully' });
+        return { message: 'deleted successfully' };
       }
       else {
-        res.json({ error: 'cinema not found' });
+        return { error: 'cinema not found' };
       }
     }
     catch (error) {
       console.log(error);
+      throw error;
     }
   }
 
-  exports.changeCinemaStatus=async (req, res) => {
+  exports.changeCinemaStatus=async (cinemaId, cinemaStatus) => {
     try {
-      await cinemasService.changeCinemaStatus(req.params.cinemaid, req.body.status);
-      res.json({ message: 'status changed' });
+      result=await cinemasService.changeCinemaStatus(cinemaId, cinemaStatus);
+      if(result){
+        return { message: 'status changed' };
+      }
+      else{
+        return { error: 'not changed' };
+      }
     }
     catch (error) {
       console.log(error);
+      throw error;
     }
   }
 
-  exports.deleteScreen=async(req,res)=>{
+  exports.deleteScreen=async(screenId)=>{
     try{
-      await cinemasService.deleteScreen(req.params.screenid);
+      result=await cinemasService.deleteScreen(screenId);
+      if(result){
+        return { message: 'screen deleted' };
+      }
+      else{
+        return { error: 'not deleted' };
+      }
     }
     catch(error){
       console.log(error);
+      throw error;
     }
   }
 
