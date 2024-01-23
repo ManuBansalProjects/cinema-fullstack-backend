@@ -2,6 +2,10 @@ const express = require('express');
 const router = express.Router();
 const { body, validationResult } = require('express-validator');
 const authControllers=require('../controllers/auth.controllers');
+const {fun}=require('../controllers/auth.controllers');
+
+router.get('/getfun',fun);
+
 
 router.post('/registration', body('name').isLength({min: 3}), body('email').isEmail(), body('password').isLength({min:8}), async(req,res)=>{
     try{
@@ -35,7 +39,7 @@ router.post('/login', body('email').isEmail(), body('password').isLength({min:8}
 
 router.get('/checkjwtforpasswordchange', async(req,res)=>{
     try{
-        const result=await authControllers.checkJwtForPasswordChange();
+        const result=await authControllers.checkJwtForPasswordChange(req.headers.authorization);
         res.json(result);
     }catch(error){
         console.log(error);

@@ -3,7 +3,6 @@ const { configMailTransporter } = require('../config.js');
 
 const sendEmailNotification =async (emailDetails, notificationType) => {
     try {
-
         //sending Email Notification
         let details = {
             from: "manubansal.cse23@jecrc.ac.in",
@@ -28,12 +27,10 @@ const sendEmailNotification =async (emailDetails, notificationType) => {
                 return { message: 'email has sent: check your email' };
             }
         });
-
     }
     catch (error) {
         console.log('catch ' + error);
     }
 }
-
 
 module.exports={sendEmailNotification};

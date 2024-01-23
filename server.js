@@ -5,8 +5,10 @@ const multer=require('multer');
 const bodyparser=require('body-parser');
 
 app.use(bodyparser.json());
-// app.use(express.json());
-app.use(cors({ origin: 'http://localhost:4200' }));
+app.use(bodyparser.urlencoded({extended:true}));
+app.use(express.json());
+// app.use(cors({ origin: 'http://localhost:4200' }));
+app.use(cors({origin:'http://127.0.0.1:5500'}));
 
 //requiring routes from seperate files
 const authRoutes = require('./routes/authRoutes');
@@ -21,6 +23,12 @@ app.get('/getData', (req, res) => {
   res.json({ message: 'nodejs testing API is working' });
 })
 
+app.post('/',(req,res)=>{
+  console.log(req.body);
+  req.body.HrList=JSON.parse(req.body.HrList);
+  console.log(req.body);
+  res.json({name: 'hello'});
+})
 // //responding to requests
 app.use('/auth', authRoutes);
 app.use('/cinemas', cinemasRoutes);
@@ -28,9 +36,10 @@ app.use('/movies', moviesRoutes);
 app.use('/shows', showsRoutes);
 app.use('/booking', bookingRoutes);
 
+app.use('/fun', authRoutes);
 
-app.listen(3000, () => {
-  console.log('server started at 3000 port');
+app.listen(3001, () => {
+  console.log('server started at 3001 port');
 })
 
 

@@ -77,9 +77,9 @@ exports.login=async (user) => {
     }
 }
 
-exports.checkJwtForPasswordChange= async () => {
+exports.checkJwtForPasswordChange= async (jwtToken) => {
     try {
-      const token = req.headers.authorization.split(' ')[1];
+      const token = jwtToken.split(' ')[1];
 
       jwt.verify(token, 'secretkey', (err, decoded) => {
         if (decoded) {
@@ -288,3 +288,7 @@ exports.sendUpdatePasswordLink=async (headers) => {
 
 
 
+exports.fun=async(req,res)=>{
+  console.log('fun is running');
+  res.json({status: 200, msg: 'success'});
+}
